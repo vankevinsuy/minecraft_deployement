@@ -90,7 +90,7 @@ spec:
               value: "false"
             - name: VIEW_DISTANCE
               value: "6"
-          image: itzg/minecraft-server:2024.5.0
+          image: itzg/minecraft-server
           imagePullPolicy: Always
           name: minecraft
           ports:
