@@ -4,23 +4,6 @@ metadata:
   name: minecraft
   labels:
     shared-gateway-access: "true"
-
----
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: minecraft-pv
-  namespace: minecraft
-spec:
-  storageClassName: ""
-  capacity:
-    storage: 30Gi
-  accessModes:
-    - ReadWriteMany
-  persistentVolumeReclaimPolicy: Retain
-  hostPath:
-    path: /mnt/hdd2T/minecraft/data
-
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -137,7 +120,7 @@ spec:
     - name: main-gateway
       namespace: envoy-gateway-system
   hostnames:
-    - "minecraft.snoozyhomelab.com"
+    - "minecraftvanilla.snoozyhomelab.com"
   rules:
     - matches:
         - path:
