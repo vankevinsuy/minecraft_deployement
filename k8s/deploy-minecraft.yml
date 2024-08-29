@@ -1,18 +1,11 @@
 apiVersion: v1
-kind: Namespace
-metadata:
-  name: minecraft
-  labels:
-    shared-gateway-access: "true"
----
-apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: minecraft-pvc-data
-  namespace: minecraft
+  name: minecraft-vanilla-pvc-data
+  namespace: minecraft-vanilla
 spec:
   storageClassName: ""
-  volumeName: minecraft-pv
+  volumeName: minecraft-vanilla-pv
   accessModes:
     - ReadWriteMany
   volumeMode: Filesystem
@@ -25,14 +18,14 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: minecraft
-  name: minecraft
-  namespace: minecraft
+    app: minecraft-vanilla
+  name: minecraft-vanilla
+  namespace: minecraft-vanilla
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: minecraft
+      app: minecraft-vanilla
   strategy:
     rollingUpdate:
       maxSurge: 1
@@ -41,53 +34,37 @@ spec:
   template:
     metadata:
       labels:
-        app: minecraft
+        app: minecraft-vanilla
     spec:
       volumes:
-        - name: nfs-data
+        - name: minecraft-vanilla-data
           persistentVolumeClaim:
-            claimName: minecraft-pvc-data
+            claimName: minecraft-vanilla-pvc-data
       containers:
-        - env:
-            - name: PGID
-              value: "1000"
-            - name: PUID
-              value: "1000"
-            - name: EULA
-              value: "True"
-            - name: TZ
-              value: US/Eastern
-            - name: ENABLE_ROLLING_LOGS
-              value: "True"
-            - name: EXISTING_OPS_FILE
-              value: "SYNCHRONIZE"
-            - name: OPS
-              value: "snoozy9"
-            - name: MAX_MEMORY
-              value: "4G"
-            - name: MAX_PLAYERS
-              value: "50"
-            - name: SPAWN_PROTECTION
-              value: "0"
-            - name: SNOOPER_ENABLED
-              value: "false"
-            - name: VIEW_DISTANCE
-              value: "6"
+        - name: minecraft-vanilla
           image: itzg/minecraft-server
           imagePullPolicy: Always
-          name: minecraft
+          envFrom:
+            - configMapRef:
+                name: minecraft-vanilla-config
+          env:
+            - name: OPS
+              valueFrom:
+                secretKeyRef:
+                  name: minecraft-vanilla-secret
+                  key: OPS
           ports:
             - containerPort: 25565
               protocol: TCP
           volumeMounts:
             - mountPath: /data
-              name: nfs-data
+              name: minecraft-vanilla-data
           resources:
             requests:
               memory: "1Gi"
               cpu: "500m"
             limits:
-              memory: "5Gi"
+              memory: "3Gi"
               cpu: "1"
       restartPolicy: Always
 
@@ -95,14 +72,14 @@ spec:
 kind: Service
 apiVersion: v1
 metadata:
-  name: minecraft-svc
-  namespace: minecraft
+  name: minecraft-vanilla-svc
+  namespace: minecraft-vanilla
 spec:
   selector:
-    app: minecraft
+    app: minecraft-vanilla
   ports:
     - port: 25565
-      name: minecraft
+      name: minecraft-vanilla
       targetPort: 25565
       protocol: TCP
   type: ClusterIP
@@ -111,8 +88,8 @@ spec:
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: minecraft-http-route
-  namespace: minecraft
+  name: minecraft-vanilla-http-route
+  namespace: minecraft-vanilla
   labels:
     shared-gateway-access: "true"
 spec:
@@ -127,17 +104,17 @@ spec:
             type: PathPrefix
             value: /
       backendRefs:
-        - name: minecraft-svc
+        - name: minecraft-vanilla-svc
           kind: Service
-          namespace: minecraft
+          namespace: minecraft-vanilla
           port: 25565
 
 ---
 apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: TCPRoute
 metadata:
-  name: minecraft-tcp-route
-  namespace: minecraft
+  name: minecraft-vanilla-tcp-route
+  namespace: minecraft-vanilla
   labels:
     shared-gateway-access: "true"
 spec:
@@ -147,7 +124,7 @@ spec:
       sectionName: minecraft-tcp
   rules:
     - backendRefs:
-        - name: minecraft-svc
+        - name: minecraft-vanilla-svc
           kind: Service
-          namespace: minecraft
+          namespace: minecraft-vanilla
           port: 25565
